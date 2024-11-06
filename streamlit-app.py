@@ -51,11 +51,15 @@ if uploaded_file is not None:
 
 
     # multiselect
-    options = st.multiselect('Select parameters:', options=df.columns, default=['T1', 'T2', 'T3'])
-    
+    options = st.multiselect('Select parameters:', options=df.columns, default=df.columns[:3].tolist())
+
+    # store new labels in session state
+    if 'new_labels' not in st.session_state:
+        st.session_state.new_labels = options
+
     
     col1, col2 = st.columns([1, 3])
-    # interpolate and naming
+    # interpolate
     today = date.today().strftime("%d_%m_%Y")
     is_interp = col1.checkbox('Interpolate data', value=True)
     if is_interp:
@@ -64,22 +68,38 @@ if uploaded_file is not None:
     else:
         filename = f"experimental_data_{today}.csv"
 
+    # rangeslider visible and reset index
+    is_reset_index = col1.checkbox('Reset time', value=True)
+    is_rangeslider = col1.checkbox('Show rangeslider', value=True)
+
     # time range
     interval = col2.slider('Select time range, seconds:', min_value=0, max_value=df.index[-1], value=(0, df.index[-1]))
+
+
+    col1, col2, col3 = st.columns([3, 7.5, 1.5], vertical_alignment="bottom")
+
+    # Text input for renaming labels
+    labels = col2.text_input("Rename parameters", value=', '.join(st.session_state.new_labels),
+                            help='Enter new parameter names separated by commas (e.g., `T1, T2, T3`)')
+    # Reset button to clear labels with one click
+    if col3.button("Reset", use_container_width=True):
+        st.session_state.new_labels = options  # Reset labels to original
+        labels = ', '.join(st.session_state.new_labels)  # Update the text input field
+    st.session_state.new_labels = labels.split(', ')
+
+
     df_processed = df[options].loc[interval[0]:interval[1]].copy()
+    df_processed = df_processed.rename(columns=dict(zip(options, st.session_state.new_labels)))
+    if is_reset_index:
+        df_processed = df_processed.reset_index(drop=True)
+        df_processed.index.name = 'seconds'
 
     # plot 2
-    plot_data(df_processed)
+    plot_data(df_processed, rangesliderBool=is_rangeslider)
 
 
     # expander 2
     with st.expander("See processed data"):
-        # reset index
-        is_reset_index = st.checkbox('Reset index', value=True)
-        if is_reset_index:
-            df_processed = df_processed.reset_index(drop=True)
-            df_processed.index.name = 'seconds'
-
         # preview
         st.dataframe(df_processed, height=280)
 

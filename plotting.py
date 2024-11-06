@@ -24,7 +24,7 @@ def set_default_layout(fig):
 
 
 
-def plot_data(df):
+def plot_data(df, rangesliderBool=True):
     fig = go.Figure()
 
     for col in df.columns:
@@ -34,7 +34,7 @@ def plot_data(df):
                      ))
 
     fig.update_layout(  
-        xaxis=dict(rangeslider=dict(visible=True), title='Time, seconds'),
+        xaxis=dict(rangeslider=dict(visible=rangesliderBool), title='Time, seconds'),
         yaxis=dict(title="Temperature, °C"),
         xaxis_rangeslider_thickness = 0.1
     )
